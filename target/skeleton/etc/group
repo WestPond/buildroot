@@ -1,0 +1,14 @@
+root:x:0:
+daemon:x:1:
+bin:x:2:
+sys:x:3:
+adm:x:4:
+tty:x:5:
+disk:x:6:
+audio:x:29:
+utmp:x:43:
+data:x:50:
+config:x:51:
+netdev:x:82:
+nobody:x:99:
+users:x:100:

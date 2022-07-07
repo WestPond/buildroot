@@ -5,6 +5,7 @@ const Compression = require( 'compression' );
 const HttpShutdown = require( 'http-shutdown' );
 const Http = require( 'http' );
 const Path = require( 'path' );
+const Fs = require( 'fs' );
 
 const app = Express();
 
@@ -23,6 +24,15 @@ app.use( Express.json() );
 
 app.get( "/api/version", ( req, res ) => {
     res.status( 200 ).json({ version: 1 });
+});
+
+app.get( "/", ( req, res ) => {
+    Fs.access( "/mnt/content/index.html", Fs.constants.R_OK, ( err ) => {
+        if( err )
+            res.sendFile( Path.join( __dirname, "default.html" ) );
+        else
+            res.sendFile( "/mnt/content/index.html" );
+    });
 });
 
 const api = require( Path.join( __dirname, "api.js" ) );

@@ -19,7 +19,7 @@ app.use( ( req, res, next ) => {
     return next();
 });
 
-app.use( Express.static( "/mnt/content/" ) );
+app.use( "/library", Express.static( "/mnt/content/" ) );
 app.use( Express.json() );
 
 app.get( "/api/version", ( req, res ) => {
@@ -31,7 +31,7 @@ app.get( "/", ( req, res ) => {
         if( err )
             res.sendFile( Path.join( __dirname, "default.html" ) );
         else
-            res.sendFile( "/mnt/content/index.html" );
+            res.redirect( "/library/" );
     });
 });
 

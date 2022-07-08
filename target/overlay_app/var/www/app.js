@@ -19,32 +19,75 @@ app.use( ( req, res, next ) => {
     return next();
 });
 
-app.use( Express.static( "/mnt/content/" ) );
 app.use( Express.json() );
 
 app.get( "/api/version", ( req, res ) => {
     res.status( 200 ).json({ version: 1 });
 });
 
-app.get( "/", ( req, res ) => {
-    Fs.access( "/mnt/content/index.html", Fs.constants.R_OK, ( err ) => {
-        if( err )
-            res.sendFile( Path.join( __dirname, "default.html" ) );
-        else
-            res.sendFile( "/mnt/content/index.html" );
-    });
-});
-
 const api = require( Path.join( __dirname, "api.js" ) );
 api( app );
 
-// Catch-all error
-app.use( ( req, res ) => {
-    const accept = req.headers[ 'accept' ];
-    if( accept && -1 != accept.indexOf( 'application/json' ) )
-        return res.status( 404 ).json( { error: "Not Found" } );
+app.all( "*", ( req, res ) => {
+    const is_dir = req.path.endsWith( '/' );
+    const path = Path.join( "/mnt/content/", Path.normalize( req.path ) );
 
-    return res.status( 404 ).send( "Not Found: " + req.path );
+    Fs.stat( path, ( err, st ) => {
+        if( err ) {
+            res.status( 404 ).end();
+            return;
+        }
+
+        if( is_dir && st.isDirectory() ) {
+            const accept = req.get( 'Accept' ) || "";
+            if( accept.includes( 'application/json' ) ) {
+                // Return a JSON directory listing
+                Fs.readdir( path, { withFileTypes: true }, async ( err, files ) => {
+                    if( err ) {
+                        res.status( 500 ).end();
+                        return;
+                    }
+
+                    const stat = ( path ) => {
+                        return new Promise( ( resolve, reject ) => { Fs.stat( path, ( e, s ) => { resolve( e ? null : s ); }); });
+                    };
+
+                    let listing = [];
+                    for( const file of files ) {
+                        let l = {};
+                        l.name = file.name;
+
+                        if( file.isDirectory() )
+                            l.type = "folder";
+                        else {
+                            const s = await stat( Path.join( path, file.name ) );
+                            l.type = "file";
+                            l.size = s.size;
+                            l.modified = Math.floor( s.mtime.getTime() / 1000 );
+                        }
+
+                        listing.push( l );
+                    }
+
+                    res.status( 200 ).json( listing );
+                });
+            }
+            else {
+                // Otherwise send index.html if it exists
+                const index = Path.join( path, "index.html" );
+                Fs.access( index, Fs.constants.R_OK, ( err ) => {
+                    if( err )
+                        res.status( 404 ).end();
+                    else
+                        res.sendFile( index );
+                });
+            }
+        }
+        else if( !is_dir && st.isFile() )
+            res.sendFile( path );
+        else
+            res.status( 404 ).end();
+    });
 });
 
 const port = process.env.PORT || 80;

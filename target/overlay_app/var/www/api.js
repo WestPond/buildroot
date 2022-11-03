@@ -46,11 +46,15 @@ function ipc( service, method, data, cb )
         sock.destroy();
     })
     sock.on( 'end', () => {
-        cb( 500, { error: "Connection Closed" } );
+        sock.end();
+    })
+    sock.on( 'close', ( err ) => {
+        if( err )
+            cb( 500, { error: "Connection Closed" } );
         sock.destroy();
     })
     sock.connect( '/var/ipc/' + service + '.ctrl', () => {
-        sock.end( req );
+        sock.write( req );
     });
 }
 

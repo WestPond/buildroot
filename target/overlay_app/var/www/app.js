@@ -13,18 +13,22 @@ app.set( 'strict routing', true );
 app.set( 'case sensitive routing', true );
 
 app.use( Compression() );
+app.use( Express.json() );
 
 app.use( ( req, res, next ) => {
     req.connection.setNoDelay();
     return next();
 });
 
-app.use( "/library", Express.static( "/mnt/content/" ) );
-app.use( Express.json() );
-
 app.get( "/api/version", ( req, res ) => {
     res.status( 200 ).json({ version: 1 });
 });
+
+const api = require( Path.join( __dirname, "api.js" ) );
+api( app );
+
+const content = require( Path.join( __dirname, "content.js" ) );
+content( app );
 
 app.get( "/", ( req, res ) => {
     Fs.access( "/mnt/content/index.html", Fs.constants.R_OK, ( err ) => {
@@ -34,9 +38,6 @@ app.get( "/", ( req, res ) => {
             res.redirect( "/library/" );
     });
 });
-
-const api = require( Path.join( __dirname, "api.js" ) );
-api( app );
 
 // Catch-all error
 app.use( ( req, res ) => {
